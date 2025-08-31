@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -32,37 +31,38 @@ function SortableItem({ criterion, onChangeDirection, onRemove }: any) {
     transition,
   };
 
-  // Disable dragging on interactive buttons
-  const dragHandleProps = {
-    ...listeners,
-    // exclude buttons from drag
-    onPointerDown: (e: PointerEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === "BUTTON") {
-        e.stopPropagation();
-      }
-    },
-  };
-
   return (
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...dragHandleProps}
-      className="flex items-center justify-between p-2 bg-gray-100 rounded-md mb-2 cursor-move"
+      className="flex items-center justify-between p-2 bg-gray-100 rounded-md mb-2"
     >
-      <span>{criterion.field}</span>
+      {/* Drag handle */}
+      <div
+        {...listeners}
+        {...attributes}
+        className="flex-1 cursor-move"
+      >
+        {sortOptions.find((s) => s.field === criterion.field)?.label}
+      </div>
+
+      {/* Action buttons */}
       <div className="flex gap-2">
         <button
           className="px-2 py-1 text-sm border rounded"
-          onClick={() => onChangeDirection(criterion.id)}
+          onClick={(e) => {
+            e.stopPropagation(); // prevent drag interference
+            onChangeDirection(criterion.id);
+          }}
         >
           {criterion.direction === "asc" ? "A→Z" : "Z→A"}
         </button>
         <button
           className="px-2 py-1 text-sm border rounded text-red-500"
-          onClick={() => onRemove(criterion.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(criterion.id);
+          }}
         >
           ✕
         </button>
@@ -80,8 +80,8 @@ export default function SortPanel({
   setCriteria: (c: SortCriterion[]) => void;
   onApply: () => void;
 }) {
-  const handleDragEnd = (event: any) => {
-    const { active, over } = event;
+  const handleDragEnd = ({ active, over }: any) => {
+    if (!over) return;
     if (active.id !== over.id) {
       const oldIndex = criteria.findIndex((c) => c.id === active.id);
       const newIndex = criteria.findIndex((c) => c.id === over.id);
@@ -114,7 +114,7 @@ export default function SortPanel({
       <h2 className="font-semibold mb-3">Sort By</h2>
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext
-          items={criteria}
+          items={criteria.map((c) => c.id)}
           strategy={verticalListSortingStrategy}
         >
           {criteria.map((criterion) => (
